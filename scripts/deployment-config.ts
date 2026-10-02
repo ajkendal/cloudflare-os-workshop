@@ -31,13 +31,9 @@ export interface RouterRoute {
   customDomain?: string;
 }
 
-/** Cloudflare Access trust boundary and the `/admin` allowlist. */
+/** Password-sign-in workshop administrator allowlist. */
 export interface AccessConfig {
-  /** Access team origin, HTTPS with no path. */
-  issuer: string;
-  /** The self-hosted Access application's AUD tag. */
-  audience: string;
-  /** Access-verified emails allowed into `/admin`. */
+  /** Lowercase email-form usernames allowed into `/admin`. */
   admins: string[];
 }
 

@@ -7,6 +7,10 @@ import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
 import { pnpmCommand } from "../cloudflare-os/scripts/pnpm-command.ts";
 import { resolveBinEntry } from "../cloudflare-os/scripts/bin-entry.ts";
 import { AI_GATEWAY_PROVIDERS } from "./deployment-config.ts";
+import {
+  assertTemporaryAccountForDeployment,
+  assertNoConflictingCredentials,
+} from "./temporary-account.ts";
 import type {
   BaseConfigs,
   BuildCommand,
@@ -40,8 +44,6 @@ const requiredPaths = [
   "workers.context.name",
   "workers.scheduler.name",
   "workers.customGatekeeper.name",
-  "access.issuer",
-  "access.audience",
   "access.admins",
   "aiGateway.enabled",
   "errorReporting.enabled",
@@ -248,18 +250,10 @@ export function validateConfig(config: DeploymentConfig): DeploymentConfig {
       "deployment's public origin, which is what the hosted deploy does.");
   }
 
-  const issuer = new URL(config.access.issuer);
-  if (issuer.protocol !== "https:" ||
-      issuer.origin !== config.access.issuer.replace(/\/$/, "")) {
-    throw new Error("Cloudflare Access issuer must be an HTTPS origin only.");
-  }
-  if (!config.access.audience.trim() || config.access.audience !== config.access.audience.trim()) {
-    throw new Error("Cloudflare Access audience must not be blank or padded with whitespace.");
-  }
-  if (!Array.isArray(config.access.admins) ||
+  if (!Array.isArray(config.access.admins) || config.access.admins.length === 0 ||
       !config.access.admins.every((email) =>
-        typeof email === "string" && /^[^@\s]+@[^@\s]+$/.test(email))) {
-    throw new Error("Every Access administrator must be an email address.");
+        typeof email === "string" && /^[^@\s]+@[^@\s]+$/.test(email) && email === email.toLowerCase())) {
+    throw new Error("Every workshop administrator must be a lowercase email-form username.");
   }
 
   validateAiGateway(config);
@@ -453,8 +447,6 @@ export function generateConfigs(config: DeploymentConfig, bases: BaseConfigs): G
   setCommon(workshop, config, config.workers.workshop.name);
   workshop.vars = {
     ADMINS: config.access.admins,
-    CF_ACCESS_ISS: config.access.issuer.replace(/\/$/, ""),
-    CF_ACCESS_AUD: config.access.audience,
     // Upstream builds OAuth redirect URIs and other absolute links from this. The backend has no
     // public route of its own, so the router's origin is the only correct value.
     PUBLIC_BASE_URL: origin,
@@ -606,9 +598,9 @@ export function buildCommands(config: DeploymentConfig): BuildCommand[] {
     { args: submoduleBuild("@gadgets/gatekeeper-scheduler") },
     { args: ownBuild("custom-gatekeeper") },
     ...(config.errorReporting.enabled ? [{ args: ownBuild("error-reporter") }] : []),
-    // Access mode is a build-time constant in the frontend bundle (`src/useAuth.ts`), so it is set
-    // here rather than inherited: a bundle built under a different value is wrong, not just stale.
-    { args: submoduleBuild("@gadgets/workshop-frontend"), env: { VITE_CF_ACCESS_MODE: "true" } },
+    // Password mode is a build-time constant in the frontend bundle (`src/useAuth.ts`), so it is
+    // explicit rather than inherited: a bundle built under a different value is wrong, not stale.
+    { args: submoduleBuild("@gadgets/workshop-frontend"), env: { VITE_CF_ACCESS_MODE: "false" } }, 
     { args: submoduleBuild("@gadgets/router") },
     { args: submoduleBuild("@gadgets/workshop-backend") },
   ];
@@ -669,7 +661,7 @@ function run(args: string[], cwd = root, env: NodeJS.ProcessEnv = process.env): 
  */
 function deployWorker(dir: string, extraArgs: string[]): void {
   const cwd = join(root, dir);
-  const args = ["deploy", "--config", generatedName, ...extraArgs];
+  const args = ["deploy", "--config", generatedName, "--temporary", ...extraArgs];
   const entry = resolveBinEntry(cwd, "wrangler");
   if (entry) {
     runCommand(process.execPath, [entry, ...args], cwd, process.env, `wrangler ${args.join(" ")}`);
@@ -714,6 +706,11 @@ function reportAiGateway(config: DeploymentConfig): void {
 async function main(): Promise<void> {
   requireSubmodule();
   const config = await readDeployment(join(root, "deployment.jsonc"));
+  const check = process.argv.includes("--check");
+  if (!check) {
+    assertNoConflictingCredentials();
+    await assertTemporaryAccountForDeployment(config.accountId);
+  }
   const generated = generateConfigs(config, {
     router: await readJsonc(join(root, packageDirs.router, "wrangler.jsonc")),
     workshop: await readJsonc(join(root, packageDirs.workshop, "wrangler.jsonc")),
@@ -730,7 +727,6 @@ async function main(): Promise<void> {
         generatedPaths[name as keyof typeof generatedPaths],
         JSON.stringify(generatedConfig, null, 2) + "\n");
     }
-    const check = process.argv.includes("--check");
     if (check) run(["test"]);
     build(config);
     const deployArgs = check ? ["--dry-run"] : [];
@@ -743,6 +739,10 @@ async function main(): Promise<void> {
     deployWorker(packageDirs.workshop, deployArgs);
     // Last: it binds every one of the above.
     deployWorker(packageDirs.router, deployArgs);
+    if (!check) {
+      console.log(`\nDeployment complete: ${config.publicBaseUrl}`);
+      console.log(`Register with your configured username: ${config.access.admins[0]}`);
+    }
   } finally {
     await Promise.all(Object.values(generatedPaths).map((path) => rm(path, { force: true })));
   }

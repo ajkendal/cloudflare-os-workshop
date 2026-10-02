@@ -22,10 +22,8 @@ const validConfig: DeploymentConfig = {
     errorReporter: { name: "acme-cloudflare-os-errors" },
   },
   access: {
-    issuer: "https://acme.cloudflareaccess.com",
-    audience: "access-audience",
     admins: ["admin@example.com"],
-  },
+  }, 
   aiGateway: {
     enabled: true,
     name: "cloudflare-os",
@@ -122,16 +120,10 @@ test("rejects destructive or malformed deployment values", () => {
     /sharingDomain must be null or a non-empty string/i);
 
   assert.throws(
-    () => validateConfig(variant((c) => { c.access.issuer += "/team"; })), /issuer.*origin/i);
+    () => validateConfig(variant((c) => { c.access.admins = ["Admin@Example.com"]; })), /lowercase email-form/i);
 
   assert.throws(
-    () => validateConfig(variant((c) => { c.access.audience = "   "; })), /audience/i);
-
-  assert.throws(
-    () => validateConfig(variant((c) => { c.access.audience = " access-audience "; })), /audience/i);
-
-  assert.throws(
-    () => validateConfig(variant((c) => { c.access.admins = ["bad-address"]; })), /email/i);
+    () => validateConfig(variant((c) => { c.access.admins = ["bad-address"]; })), /email-form/i);
 
   assert.throws(
     () => validateConfig(variant((c) => {
@@ -186,14 +178,14 @@ test("rejects malformed AI Gateway providers and account", () => {
     /aiGateway.accountId must be null or 32 hexadecimal/i);
 });
 
-test("generates Access-mode Workshop, Context, and custom Gatekeeper configs", async () => {
+test("generates password-mode Workshop, Context, and custom Gatekeeper configs", async () => {
   const generated = generateConfigs(validConfig, await baseConfigs());
   const vars = generated.workshop.vars!;
 
   assert.equal(generated.workshop.name, "acme-cloudflare-os-backend");
   assert.deepEqual(vars.ADMINS, ["admin@example.com"]);
-  assert.equal(vars.CF_ACCESS_ISS, validConfig.access.issuer);
-  assert.equal(vars.CF_ACCESS_AUD, validConfig.access.audience);
+  assert.equal(vars.CF_ACCESS_ISS, undefined);
+  assert.equal(vars.CF_ACCESS_AUD, undefined);
   assert.equal(vars.PUBLIC_BASE_URL, "https://os.example.com");
   assert.equal(vars.CF_AI_GATEWAY, "cloudflare-os");
   assert.equal(vars.CF_AI_GATEWAY_PROVIDERS, "anthropic,cloudflare");
@@ -596,7 +588,7 @@ test("rebuilds the Context configurator app rather than replaying it", () => {
 
 test("passes VITE_CF_ACCESS_MODE explicitly rather than inheriting it", () => {
   const withAccessMode = buildCommands(validConfig).filter(({ env }) => env);
-  assert.deepEqual(withAccessMode.map(({ env }) => env), [{ VITE_CF_ACCESS_MODE: "true" }]);
+  assert.deepEqual(withAccessMode.map(({ env }) => env), [{ VITE_CF_ACCESS_MODE: "false" }]);
   // It has to reach the frontend, which inlines it into the bundle, and nothing else.
   assert.match(withAccessMode[0].args.join(" "), /@gadgets\/workshop-frontend/);
 });
