@@ -29,7 +29,7 @@ The custom logo appears in the app chrome, sign-in screens, and browser tab on e
 | `publicBaseUrl` | The deployment's public origin | `null` to derive it from the router's custom domain; on a `workers.dev` route, the router's own `https://<router-name>.<subdomain>.workers.dev` |
 | `workers.*.name` | Stable Worker service identities | Unique lowercase names; changing one creates a differently named Worker |
 | `workers.router.route` | The deployment's public address | `customDomain` for production or `workersDev: true` for evaluation |
-| `access` | Cloudflare Access trust and administrator list | Access team issuer, application audience, and verified email list |
+| `access` | Workshop administrator list | Lowercase email-form Cloudflare OS usernames allowed into `/admin` |
 | `aiGateway` | Deployment-managed model catalog | Enabled by default over the Workers AI binding; which providers to advertise, and which gateway |
 | `context` | Context sharing boundary, snapshot KV, and optional Artifacts repositories | `null` to scope data to the public origin, or a pinned stable label; automatic or existing KV; Git-backed collections disabled or enabled |
 | `customGatekeeper` | Example integration identity and guidance | Organization-specific display text |
@@ -54,7 +54,7 @@ The deployment is six Workers. Keep their names unique: service bindings use the
 
 Context and Scheduler are *ambient*: upstream's release marks both `PREINSTALL`, so the hosted flow installs them on every instance and this starter deploys them for the same reason. Neither takes configuration beyond its name — the Scheduler takes none at all.
 
-Only the router takes a route; the other five are reachable only over service bindings, and the deploy turns off `workers.dev` and [Preview URLs](https://developers.cloudflare.com/workers/configuration/previews/) on all six. That keeps the router the single Access-protected way in.
+Only the router takes a route; the other five are reachable only over service bindings, and the deploy turns off `workers.dev` and [Preview URLs](https://developers.cloudflare.com/workers/configuration/previews/) on all six. That keeps the router as the only public way in. The workshop uses built-in password sign-in; it is not equivalent to an Access-protected production deployment.
 
 For production, set a [Custom Domain](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/) on it:
 
@@ -75,19 +75,17 @@ On a custom domain the hostname is yours and has nothing to do with any Worker n
 
 ### Sign-in methods
 
-Cloudflare OS supports three ways to sign users in. This starter deploys Cloudflare Access.
+Cloudflare OS supports three ways to sign users in. This workshop deploys built-in password accounts.
 
 | Method | How it works | In this starter |
 | --- | --- | --- |
-| Cloudflare Access | Access verifies identity before the request reaches the Worker, and the Workshop trusts the signed Access JWT. The password login and signup pages are disabled. | Deployed by default |
-| Built-in password accounts | Cloudflare OS serves its own username and password login plus signup. This is the upstream default. | Requires deploy script changes |
-| Auth Gatekeepers | Gatekeepers that advertise `providesAuth` add "Continue with ..." buttons, alongside or instead of password login. | Requires deploy script changes |
+| Cloudflare Access | Access verifies identity before the request reaches the Worker, and the Workshop trusts the signed Access JWT. The password login and signup pages are disabled. | Not used by this workshop |
+| Built-in password accounts | Cloudflare OS serves its own username and password login plus signup. This is the upstream default. | Deployed by this workshop |
+| Auth Gatekeepers | Gatekeepers that advertise `providesAuth` add "Continue with ..." buttons, alongside or instead of password login. | Not enabled |
 
-Access mode is the default here because unauthenticated requests never reach application code. `scripts/deploy.ts` implements it by setting `CF_ACCESS_ISS` and `CF_ACCESS_AUD` on the Workshop and building the frontend with `VITE_CF_ACCESS_MODE=true`.
+This workshop explicitly omits `CF_ACCESS_ISS` and `CF_ACCESS_AUD`, leaves `AUTH_GATEKEEPERS` unset, leaves `DISABLE_PASSWORD_AUTH` false, and builds the frontend with `VITE_CF_ACCESS_MODE=false`. It collects the attendee's lowercase email-form username during bootstrap and writes it to `access.admins`.
 
-To run another method, drop those two variables and the build flag, then set upstream's `AUTH_GATEKEEPERS` allowlist for provider sign-in. `DISABLE_PASSWORD_AUTH=true` makes a deployment provider-only. Upstream ignores it unless at least one auth Gatekeeper is allowlisted, so a deployment cannot lock everyone out. The wrapper's validation assumes Access mode, so review the upstream Workshop backend and frontend documentation before changing it.
-
-The `admins` list gates `/admin` in every method.
+The `admins` list gates `/admin`; first signup does **not** make a user an administrator. Password sign-in is not email-verified Cloudflare Access identity, so do not use this workshop configuration as an equivalent production Access deployment.
 
 #### Cloudflare Access
 

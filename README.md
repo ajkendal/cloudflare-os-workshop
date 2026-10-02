@@ -23,7 +23,7 @@ Use these steps once you have learned the Event Code from the speaker.
 Open your terminal and change to a temporary directory, then run:
 
 ```bash
-git clone --recurse-submodules https://github.com/cloudflare/cloudflare-os-workshop
+git clone --recurse-submodules https://github.com/cloudflare/cloudflare-os-workshop.git
 cd cloudflare-os-workshop
 pnpm install
 pnpm --dir cloudflare-os install
@@ -78,3 +78,9 @@ If you do not claim, the temporary account and its resources expire automaticall
 **We recommend starting afresh with the cloudflare-os-starter after claiming your account**.
 
 If you run into problems, review the [Troubleshooting Guide](./TROUBLESHOOTING.md).
+
+## Workshop support and release status
+
+This guide supports Node.js 24.19+ and pnpm 11.17+ with Wrangler 4.144.0, pinned in the repository. `bootstrap.js` checks these prerequisites and prints the account ID, site URL, administrator username, and the event account's actual expiry. The claim link is a private bearer credential: keep it only in your terminal/private notes, never share it, and wait until the session ends before claiming.
+
+The event organizer must separately rehearse the current event code and temporary-account entitlements before publishing a `workshop-v1` release tag. This checkout has not been tagged or published by this preparation workflow.

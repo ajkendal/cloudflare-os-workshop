@@ -4,10 +4,7 @@
   "accountId": "<SET_BY_BOOTSTRAP>",
 
   // The deployment's public origin, used for PUBLIC_BASE_URL and to scope Context data.
-  // null derives it from workers.router.route.customDomain.
-  // Required when the router uses workersDev: the account's workers.dev subdomain is not
-  // knowable from this file. Write it as a bare origin, no path and no trailing slash --
-  // "https://<router-name>.<subdomain>.workers.dev".
+  // Bootstrap gets the attendee account's workers.dev subdomain and writes this bare origin.
   "publicBaseUrl": "<SET_BY_BOOTSTRAP>",
 
   // Worker names are permanent service identities. Keep them unique within the account.
