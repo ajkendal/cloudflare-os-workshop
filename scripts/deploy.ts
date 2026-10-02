@@ -661,8 +661,14 @@ function run(args: string[], cwd = root, env: NodeJS.ProcessEnv = process.env): 
  */
 function deployWorker(dir: string, extraArgs: string[]): void {
   const cwd = join(root, dir);
-  const args = ["deploy", "--config", generatedName, "--temporary", ...extraArgs];
-  const entry = resolveBinEntry(cwd, "wrangler");
+  const args = [
+    "deploy", "--config", generatedName,
+    ...(process.argv.includes("--check") ? [] : ["--temporary"]),
+    ...extraArgs,
+  ];
+  // Deliberately resolve from the workshop root: all six Workers, including submodule packages,
+  // must use the workshop's pinned temporary-account-capable Wrangler release.
+  const entry = resolveBinEntry(root, "wrangler");
   if (entry) {
     runCommand(process.execPath, [entry, ...args], cwd, process.env, `wrangler ${args.join(" ")}`);
   } else {
