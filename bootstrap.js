@@ -43,7 +43,7 @@ function output(command, args) {
 async function prerequisites() {
   if (!versionAtLeast(process.version, minimumNode)) throw new Error("Node.js 24.19 or newer is required. Install it, then rerun `node bootstrap.js`.");
   const pnpmVersion = output(process.platform === "win32" ? "pnpm.cmd" : "pnpm", ["--version"]);
-  if (!pnpmVersion?.startsWith("11.17.")) throw new Error("pnpm 11.17 is required. Enable it with `corepack prepare pnpm@11.17.0 --activate`, then rerun bootstrap.");
+  if (!pnpmVersion || !versionAtLeast(pnpmVersion, [11, 17, 0])) throw new Error("pnpm 11.17 or newer is required. Enable it with `corepack prepare pnpm@11.17.0 --activate`, then rerun bootstrap.");
   if (!existsSync(join(root, "cloudflare-os/package.json"))) throw new Error("Cloudflare OS submodule is not initialized. Run `git submodule update --init`, then rerun bootstrap.");
   for (const path of ["node_modules/wrangler/package.json", "cloudflare-os/node_modules/wrangler/package.json"]) {
     try { await access(join(root, path)); } catch { throw new Error("Dependencies are not installed. Run `pnpm install` and `pnpm --dir cloudflare-os install`, then rerun bootstrap."); }
