@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Container create step: bring the checkout to the state README.md "Clone and install"
-# produces, so the attendee's first command is `node bootstrap.js`.
+# Container create step: activate the package-manager version pinned by this checkout.
 #
-# Deliberately does NOT run bootstrap.js: that needs the speaker's event code, provisions a
-# real (if temporary) Cloudflare account, and requires accepting Cloudflare's terms. Those
-# are the attendee's decisions, not a container build step.
+# Do not install workspace dependencies here. A Dev Containers lifecycle command has no
+# interactive terminal, so pnpm cannot safely ask permission to replace an existing
+# host-platform node_modules tree. The attendee runs both installs interactively instead.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -19,20 +18,7 @@ node --version
 corepack prepare --activate
 pnpm --version
 
-# bootstrap.js refuses to run without the submodule, and the two installs below need it.
-# A devcontainer opened from a clone made without --recurse-submodules has an empty dir here.
-if [ ! -f cloudflare-os/package.json ]; then
-  echo "==> Initializing the cloudflare-os submodule"
-  git submodule update --init --recursive
-fi
-
-# Two separate installs, matching README.md. They are genuinely separate workspaces: the
-# submodule's packages install against their own lockfile, and pnpm-workspace.yaml documents
-# why the catalogs must stay byte-identical across the two.
-echo "==> Installing workspace dependencies (1/2: root)"
-pnpm install
-
-echo "==> Installing workspace dependencies (2/2: cloudflare-os submodule)"
-pnpm --dir cloudflare-os install
-
-echo "==> Setup complete"
+echo ""
+echo "pnpm is ready. In the integrated terminal, install dependencies interactively:"
+echo "  pnpm install"
+echo "  pnpm --dir cloudflare-os install"

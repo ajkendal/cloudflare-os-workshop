@@ -38,8 +38,10 @@ fi
 temp_cache="$wrangler_dir/wrangler-temporary-account.toml"
 
 echo ""
-if [ ! -f cloudflare-os/package.json ] || [ ! -d node_modules ]; then
-  echo "Next step: bash .devcontainer/post-create.sh   (dependencies are not installed)"
+if [ ! -f cloudflare-os/package.json ] || [ ! -d node_modules ] || [ ! -d cloudflare-os/node_modules ]; then
+  echo "Next step: install dependencies interactively:"
+  echo "  pnpm install"
+  echo "  pnpm --dir cloudflare-os install"
 elif [ -f "$temp_cache" ] && [ -f deployment.jsonc ]; then
   echo "A temporary workshop account is configured."
   echo "Next step: pnpm deploy"

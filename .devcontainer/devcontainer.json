@@ -43,8 +43,8 @@
 
   "remoteUser": "node",
 
-  // Installs both workspaces, exactly as README.md "Clone and install" specifies. Runs once
-  // per container create; re-run by hand after changing the pinned submodule.
+  // Activates the pinned pnpm version only. Installs remain an explicit, interactive attendee
+  // step: pnpm may need confirmation before replacing an existing host-platform node_modules.
   "onCreateCommand": "bash .devcontainer/post-create.sh",
 
   // Prints the attendee's next step and re-verifies the environment on every container start,

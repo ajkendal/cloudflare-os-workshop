@@ -17,9 +17,18 @@ an empty Wrangler credential store, as temporary workshop accounts require.
    ```
 
 2. Open that directory in VS Code or another Dev Containers-compatible editor
-   and choose **Reopen in Container**.
-3. The create step installs the root and `cloudflare-os` workspaces with the
-   pinned Node 24 / pnpm 11.17 toolchain. When it finishes, run:
+   and choose **Reopen in Container**. The create step activates the pinned
+   Node 24 / pnpm 11.17 toolchain; it intentionally does not install workspace
+   dependencies, because pnpm may require confirmation before replacing an
+   existing platform-specific `node_modules` tree.
+3. In the integrated terminal, install both workspaces interactively:
+
+   ```sh
+   pnpm install
+   pnpm --dir cloudflare-os install
+   ```
+
+4. Run bootstrap:
 
    ```sh
    node bootstrap.js
@@ -27,7 +36,7 @@ an empty Wrangler credential store, as temporary workshop accounts require.
 
    Enter the speaker's event code and follow the normal workshop guide.
 
-4. After bootstrap completes, deploy with:
+5. After bootstrap completes, deploy with:
 
    ```sh
    pnpm deploy
