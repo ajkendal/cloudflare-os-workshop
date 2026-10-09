@@ -250,10 +250,16 @@ export function validateConfig(config: DeploymentConfig): DeploymentConfig {
       "deployment's public origin, which is what the hosted deploy does.");
   }
 
+  // Must match `normalizeUsername` in cloudflare-os/packages/workshop-backend/src/user.ts: ADMINS
+  // is compared to the normalized account name by exact string match, so an administrator the
+  // backend can never produce -- an email address, most obviously -- deploys cleanly and then
+  // denies `/admin` to everyone.
   if (!Array.isArray(config.access.admins) || config.access.admins.length === 0 ||
-      !config.access.admins.every((email) =>
-        typeof email === "string" && /^[^@\s]+@[^@\s]+$/.test(email) && email === email.toLowerCase())) {
-    throw new Error("Every workshop administrator must be a lowercase email-form username.");
+      !config.access.admins.every((username) =>
+        typeof username === "string" && /^[a-z][a-z0-9_]*$/.test(username))) {
+    throw new Error(
+      "Every workshop administrator must be a Cloudflare OS username: lowercase, starting with a " +
+      "letter, containing only letters, digits, and underscores. Email addresses are not usernames.");
   }
 
   validateAiGateway(config);

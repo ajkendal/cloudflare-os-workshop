@@ -25,23 +25,32 @@ Open your terminal and change to a temporary directory, then run:
 ```bash
 git clone --recurse-submodules https://github.com/cloudflare/cloudflare-os-workshop.git
 cd cloudflare-os-workshop
+```
+
+Open Visual Studio Code and switch to the DevContainer (if possible).  If not possible, then
+ensure you are logged out of wrangler, cf, and do not have a CLOUDFLARE_API_TOKEN set.
+
+## Run setup
+
+If using a DevContainer, proceed in a terminal within the DevContainer.  If not, then proceed
+in your normal terminal.
+
+```bash
 pnpm install
 pnpm --dir cloudflare-os install
 ```
 
-Wait for both installs to finish.  Use the workshop repository, not cloudflare-os-starter.
-
-## Run setup
+Wait for both installs to finish before continuing.
 
 ```bash
 node bootstrap.js
 ```
 
 1. Enter the event code from the speaker
-2. Enter your email address.  The script will show the lowercase username you must use later.
+2. Enter your email address. The script derives and displays your Cloudflare OS username from its local part (for example, `mypersonalaccount@gmail.com` becomes `mypersonalaccount`).
 3. Review Cloudflare's Terms of Service and Privacy Policy. Type 'yes' if you agree.
 4. Wait for the bootstrap deployment and automatic configuration to complete.
-5. Save your site URL, administrator username, account expiry, and private claim link.  Do not share the claim link or claim the account yet.
+5. Save your site URL, administrator username, account expiry, and private claim link. Your username is not an email address: it starts with a lowercase letter and contains only lowercase letters, digits, and underscores. Do not share the claim link or claim the account yet.
 
 **Checkpoint**: the terminal displays "Workshop configuration ready" and tells you to run `pnpm deploy`.  Review `deployment.jsonc` - you should not need to edit this file.
 
@@ -58,9 +67,9 @@ Wait for all Workers to finish deploying.  The command automatically uses your t
 ## Create your Cloudflare OS login
 
 1. Choose the signup option on your deployed site.
-2. Use the exact lowercase email/username shown by bootstrap and choose a unique password.  This is a Cloudflare OS login, not a Cloudflare account claim.
+2. Use the exact username shown by bootstrap and choose a unique password. It is not your email address. This is a Cloudflare OS login, not a Cloudflare account claim.
 3. Open `/admin`.  Confirm you can access it.
-4. Close new signups if you do not need other users.  Register your administrator username before sharing the site URL.
+4. Close new signups if you do not need other users. Register your administrator username before sharing the site URL.
 5. Set the site name, logo, and accent color.  No redeploy is needed for branding.
 
 ## Verify your instance

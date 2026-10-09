@@ -17,7 +17,22 @@ const root = dirname(fileURLToPath(import.meta.url));
 const minimumNode = [24, 19, 0];
 const pinnedWrangler = "4.144.0";
 const emailPattern = /^[^@\s]+@[^@\s]+$/;
+const usernamePattern = /^[a-z][a-z0-9_]*$/;
 const accountIdPattern = /^[a-f\d]{32}$/i;
+
+// A Cloudflare OS username is not an email address. The Workshop backend normalizes every account
+// name to `usernamePattern` (`normalizeUsername` in
+// cloudflare-os/packages/workshop-backend/src/user.ts), and `/admin` is granted by exact match of
+// that normalized name against ADMINS -- so writing an email into `access.admins` would lock the
+// attendee out of their own deployment. Derive the name they will actually register instead.
+// Derivation beats a second prompt here because rerunning bootstrap has to reproduce the value
+// already deployed in ADMINS, and a re-entered answer need not match.
+function usernameFromEmail(email) {
+  const local = email.slice(0, email.indexOf("@")).toLowerCase().replace(/[^a-z0-9_]/g, "_");
+  const username = /^[a-z]/.test(local) ? local : `user_${local}`;
+  if (!usernamePattern.test(username)) throw new Error(`Could not derive a Cloudflare OS username from "${email}". Rerun bootstrap with a different address, or ask the workshop organizer for help.`);
+  return username;
+}
 
 function versionAtLeast(actual, minimum) {
   const values = actual.replace(/^v/, "").split(".").map(Number);
@@ -66,7 +81,7 @@ async function getSubdomain(account) {
   return subdomain.toLowerCase();
 }
 
-async function writeConfiguration(account, email) {
+async function writeConfiguration(account, username) {
   const subdomain = await getSubdomain(account);
   const templatePath = join(root, "deployment.template.jsonc");
   const text = await (await import("node:fs/promises")).readFile(templatePath, "utf8");
@@ -78,7 +93,7 @@ async function writeConfiguration(account, email) {
     [["accountId"], account.accountId],
     [["workers", "router", "route"], { workersDev: true }],
     [["publicBaseUrl"], `https://connect-os.${subdomain}.workers.dev`],
-    [["access", "admins"], [email]],
+    [["access", "admins"], [username]],
   ]) next = applyEdits(next, modify(next, path, value, { formattingOptions: { insertSpaces: true, tabSize: 2 } }));
   const destination = join(root, "deployment.jsonc");
   const temporary = `${destination}.${process.pid}.tmp`;
@@ -94,12 +109,15 @@ async function main() {
   if (cached && existsSync(configPath)) {
     const existing = parse(await (await import("node:fs/promises")).readFile(configPath, "utf8"));
     if (existing?.accountId !== cached.accountId) throw new Error("deployment.jsonc and the cached temporary account differ. Do not overwrite either one. Ask the workshop organizer for explicit recovery.");
-    const email = String(existing?.access?.admins?.[0] ?? "").toLowerCase();
-    if (!emailPattern.test(email)) throw new Error("The existing deployment.jsonc has no valid administrator email. Ask the workshop organizer for recovery.");
+    const configured = String(existing?.access?.admins?.[0] ?? "").toLowerCase();
+    // Accept an email here only to repair a deployment.jsonc written by an earlier bootstrap, which
+    // stored the address itself. Rewriting it to the derived username is what makes /admin reachable.
+    const username = emailPattern.test(configured) ? usernameFromEmail(configured) : configured;
+    if (!usernamePattern.test(username)) throw new Error("The existing deployment.jsonc has no valid administrator username. Ask the workshop organizer for recovery.");
     assertNoConflictingCredentials();
-    const siteUrl = await writeConfiguration(cached, email);
+    const siteUrl = await writeConfiguration(cached, username);
     console.log("\nWorkshop configuration ready.");
-    console.log(`Account ID: ${cached.accountId}\nSite URL: ${siteUrl}\nAdmin username: ${email}\nExpires: ${cached.accountExpiresAt}`);
+    console.log(`Account ID: ${cached.accountId}\nSite URL: ${siteUrl}\nAdmin username: ${username}\nExpires: ${cached.accountExpiresAt}`);
     console.log("\nNext: pnpm deploy\nSave the private claim link shown above. Do not claim until after the workshop.");
     console.log(`\nPrivate claim link — do not share or claim until after the session:\n${cached.claimUrl}`);
     return;
@@ -110,16 +128,18 @@ async function main() {
   }
   const eventCode = await prompt("Session event code: ");
   if (!eventCode) throw new Error("Event code cannot be empty. Rerun bootstrap and enter the code from the speaker.");
-  const email = (await prompt("Email address (used as your Cloudflare OS username): ")).toLowerCase();
-  if (!emailPattern.test(email)) throw new Error("Enter a valid email-form username. Rerun bootstrap to try again.");
+  const email = (await prompt("Email address (identifies you to the workshop organizer): ")).toLowerCase();
+  if (!emailPattern.test(email)) throw new Error("Enter a valid email address. Rerun bootstrap to try again.");
+  const username = usernameFromEmail(email);
+  console.log(`\nYour Cloudflare OS username will be: ${username}\nCloudflare OS usernames are not email addresses. Register with this exact name.`);
   const entry = resolveBinEntry(root, "wrangler");
   if (!entry) throw new Error("Pinned Wrangler could not be resolved. Run `pnpm install`, then rerun bootstrap.");
   run(process.execPath, [entry, "deploy", "--config", "bootstrap/wrangler.jsonc", "--temporary", "--event-code", eventCode], "Bootstrap deployment");
   const account = await readTemporaryAccount();
   if (!account || !accountIdPattern.test(account.accountId)) throw new Error("Wrangler completed but did not create a valid temporary account cache. Do not retry blindly; ask the workshop organizer for help.");
-  const siteUrl = await writeConfiguration(account, email);
+  const siteUrl = await writeConfiguration(account, username);
   console.log("\nWorkshop configuration ready.");
-  console.log(`Account ID: ${account.accountId}\nSite URL: ${siteUrl}\nAdmin username: ${email}\nExpires: ${account.accountExpiresAt}`);
+  console.log(`Account ID: ${account.accountId}\nSite URL: ${siteUrl}\nAdmin username: ${username}\nExpires: ${account.accountExpiresAt}`);
   console.log("\nNext: pnpm deploy\nSave the private claim link shown above. Do not claim until after the workshop.");
   console.log(`\nPrivate claim link — do not share or claim until after the session:\n${account.claimUrl}`);
 }

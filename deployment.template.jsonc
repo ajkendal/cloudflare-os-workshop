@@ -32,7 +32,9 @@
   },
 
   // Password sign-in workshop. "admins" gates /admin but does not activate Cloudflare Access.
-  // Bootstrap replaces this value with the attendee's lowercase email address.
+  // Bootstrap replaces this value with the attendee's derived Cloudflare OS username. It is not an
+  // email address: it starts with a lowercase letter and contains only lowercase letters, digits,
+  // and underscores.
   "access": {
     "admins": ["<SET_BY_BOOTSTRAP>"]
   },

@@ -33,7 +33,11 @@ export interface RouterRoute {
 
 /** Password-sign-in workshop administrator allowlist. */
 export interface AccessConfig {
-  /** Lowercase email-form usernames allowed into `/admin`. */
+  /**
+   * Cloudflare OS usernames allowed into `/admin`: lowercase, starting with a letter, containing
+   * only letters, digits, and underscores. Not email addresses -- see `normalizeUsername` in the
+   * Workshop backend, whose output these are matched against.
+   */
   admins: string[];
 }
 

@@ -56,11 +56,11 @@ Keep the temporary cache intact. Resolve the reported error, then rerun pnpm dep
 
 ## 11 /admin is denied
 
-Sign in with the exact lowercase username shown by bootstrap. First signup does not grant admin rights automatically. The runner should confirm that generated ADMINS matches the normalized signed-in username. Do not turn off authorization as a workaround.
+Sign in with the exact username shown by bootstrap, not the email address supplied to bootstrap. A valid username begins with a lowercase letter and contains only lowercase letters, digits, and underscores. First signup does not grant admin rights automatically. The runner should confirm that generated ADMINS matches the normalized signed-in username. Do not turn off authorization as a workaround.
 
 ## 12 Password signup fails or the username is already taken
 
-If you already created the user, use sign-in. If you have not, ask the runner to inspect signup availability and the account state privately. Do not choose a different username without updating the administrator configuration.
+If you entered an email address, use the username bootstrap displayed instead; for `fizzyinthehall@gmail.com`, that is `fizzyinthehall`. If you already created the user, use sign-in. If you have not, ask the runner to inspect signup availability and the account state privately. Do not choose a different username without updating the administrator configuration.
 
 ## 13 Site URL or redirects are wrong
 

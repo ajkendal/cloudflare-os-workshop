@@ -29,7 +29,7 @@ The custom logo appears in the app chrome, sign-in screens, and browser tab on e
 | `publicBaseUrl` | The deployment's public origin | `null` to derive it from the router's custom domain; on a `workers.dev` route, the router's own `https://<router-name>.<subdomain>.workers.dev` |
 | `workers.*.name` | Stable Worker service identities | Unique lowercase names; changing one creates a differently named Worker |
 | `workers.router.route` | The deployment's public address | `customDomain` for production or `workersDev: true` for evaluation |
-| `access` | Workshop administrator list | Lowercase email-form Cloudflare OS usernames allowed into `/admin` |
+| `access` | Workshop administrator list | Cloudflare OS usernames allowed into `/admin`: lowercase, beginning with a letter, and containing only letters, digits, and underscores |
 | `aiGateway` | Deployment-managed model catalog | Enabled by default over the Workers AI binding; which providers to advertise, and which gateway |
 | `context` | Context sharing boundary, snapshot KV, and optional Artifacts repositories | `null` to scope data to the public origin, or a pinned stable label; automatic or existing KV; Git-backed collections disabled or enabled |
 | `customGatekeeper` | Example integration identity and guidance | Organization-specific display text |
@@ -83,9 +83,9 @@ Cloudflare OS supports three ways to sign users in. This workshop deploys built-
 | Built-in password accounts | Cloudflare OS serves its own username and password login plus signup. This is the upstream default. | Deployed by this workshop |
 | Auth Gatekeepers | Gatekeepers that advertise `providesAuth` add "Continue with ..." buttons, alongside or instead of password login. | Not enabled |
 
-This workshop explicitly omits `CF_ACCESS_ISS` and `CF_ACCESS_AUD`, leaves `AUTH_GATEKEEPERS` unset, leaves `DISABLE_PASSWORD_AUTH` false, and builds the frontend with `VITE_CF_ACCESS_MODE=false`. It collects the attendee's lowercase email-form username during bootstrap and writes it to `access.admins`.
+This workshop explicitly omits `CF_ACCESS_ISS` and `CF_ACCESS_AUD`, leaves `AUTH_GATEKEEPERS` unset, leaves `DISABLE_PASSWORD_AUTH` false, and builds the frontend with `VITE_CF_ACCESS_MODE=false`. Bootstrap collects the attendee's email address, derives a Cloudflare OS username from its local part (for example, `fizzyinthehall@gmail.com` becomes `fizzyinthehall`), displays it, and writes that username to `access.admins`.
 
-The `admins` list gates `/admin`; first signup does **not** make a user an administrator. Password sign-in is not email-verified Cloudflare Access identity, so do not use this workshop configuration as an equivalent production Access deployment.
+The `admins` list gates `/admin`; first signup does **not** make a user an administrator. Register using the exact bootstrap-provided username — **not** the email address used during bootstrap. Password sign-in is not email-verified Cloudflare Access identity, so do not use this workshop configuration as an equivalent production Access deployment.
 
 #### Cloudflare Access
 

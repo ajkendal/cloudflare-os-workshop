@@ -74,7 +74,7 @@ git rm --cached deployment.jsonc
 Make these changes in the workshop-owned scripts, following the starter’s [sign-in-method instructions](docs/customization.md#sign-in-methods). This target configuration is not accepted by the unchanged starter.
 
 1. In scripts/deployment-config.ts, change the workshop’s AccessConfig to contain admins only. Remove issuer and audience from this password-only workshop type.
-2. In scripts/deploy.ts, remove access.issuer and access.audience from requiredPaths. Remove their issuer URL and audience validation. Retain administrator-list validation. Use lowercase email-form usernames for this workshop.
+2. In scripts/deploy.ts, remove access.issuer and access.audience from requiredPaths. Remove their issuer URL and audience validation. Retain administrator-list validation. Require lowercase Cloudflare OS usernames: they start with a letter and contain only letters, digits, and underscores; they are not email addresses.
 3. In generateConfigs(), keep ADMINS: config.access.admins and PUBLIC_BASE_URL: origin in workshop.vars. Remove CF_ACCESS_ISS and CF_ACCESS_AUD completely; do not substitute dummy values.
 4. In buildCommands(), change the frontend build environment from VITE_CF_ACCESS_MODE: "true" to "false". Set false explicitly so a shell environment cannot accidentally enable Access.
 5. Leave AUTH_GATEKEEPERS unset/empty and DISABLE_PASSWORD_AUTH unset/false for password-only sign-in.
@@ -94,7 +94,7 @@ workshop.vars = {
 }
 ```
 
-Require the attendee’s Cloudflare OS username to match the email collected by bootstrap. Administrator access comes from ADMINS; first signup does not automatically grant it. Password sign-in is not email-verified Cloudflare Access identity. Do not advertise this setup as equivalent to an Access-protected production deployment.
+Derive the attendee’s Cloudflare OS username from the local part of the email collected by bootstrap (for example, `fizzyinthehall@gmail.com` becomes `fizzyinthehall`), then write the derived username to `ADMINS`. Cloudflare OS usernames start with a letter and contain only lowercase letters, digits, and underscores; they are not email addresses. First signup does not automatically grant administrator access. Password sign-in is not email-verified Cloudflare Access identity. Do not advertise this setup as equivalent to an Access-protected production deployment.
 
 ## 1.5 Add the bootstrap Worker
 
@@ -132,7 +132,7 @@ Add `bootstrap.js` at the repository root. The starter uses JavaScript modules, 
 6. Read `wrangler-temporary-account.toml` from the correct global configuration directory for the pinned version. Mirror its legacy-home versus OS/XDG path precedence. Use a TOML parser, not a regular expression over the whole file.
 7. Validate account.id, the temporary API token, account expiry, and claim expiry. Copy only the account ID into configuration. Never print or persist the temporary API token outside Wrangler’s private cache.
 8. Call `GET https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/subdomain` using the cached token as the Bearer credential. Check HTTP status, success, and a non-empty valid result.subdomain. Do not infer the subdomain from the account’s display name.
-9. Read `deployment.template.jsonc` with a JSONC-aware parser/editor. Set `accountId`, `workers.router.route = { workersDev: true }`, `publicBaseUrl = https://<router-name>.<subdomain>.workers.dev`, and `access.admins = [<lowercase-email>]`. Write `deployment.jsonc` atomically only after all required values validate.
+9. Derive a valid Cloudflare OS username from the email local part: lowercase it, replace each non-`[a-z0-9_]` character with `_`, and prefix `user_` when it does not begin with a letter. Read `deployment.template.jsonc` with a JSONC-aware parser/editor. Set `accountId`, `workers.router.route = { workersDev: true }`, `publicBaseUrl = https://<router-name>.<subdomain>.workers.dev`, and `access.admins = [<derived-username>]`. Write `deployment.jsonc` atomically only after all required values validate.
 10. Print a completion summary containing the account ID, site URL, administrator username, and expiry. Display the claim link only in the attendee’s private interactive terminal, with a warning not to share or claim it until after the session. Do not send it to analytics or shared logs.
 
 Add and lock a TOML-parser dependency and use the starter’s jsonc-parser dependency for configuration edits. Keep cache-resolution logic in a small shared helper used by bootstrap and deployment. Wrangler’s cache format is internal: pin and test the version rather than treating the path and fields as a stable public API.
@@ -145,7 +145,7 @@ Bootstrap success output:
 Workshop configuration ready.
 Account ID: <32-character account ID>
 Site URL: https://connect-os.<subdomain>.workers.dev
-Admin username: attendee@example.com
+Admin username: attendee
 Expires: <actual event-account expiry>
 
 Next: pnpm deploy
@@ -160,7 +160,7 @@ Save the private claim link shown above. Do not claim until after the workshop.
 4. Pass --temporary to each of the six Wrangler deploy calls. Do not pass --event-code again. Preserve the starter’s deployment order: private dependencies and Workshop before the public router.
 5. Generate account_id from deployment.jsonc for every Worker. Ensure the pinned Wrangler actually deploys all Workers into that same cached account.
 6. Keep pnpm check a non-provisioning validation/build path. Do not trigger temporary provisioning as a side effect of check.
-7. After deploying, print the configured publicBaseUrl and tell the attendee to register with the configured username.
+7. After deploying, print the configured publicBaseUrl and tell the attendee to register with the configured username, not their bootstrap email address.
 
 For a workshop-only wrapper, the per-Worker Wrangler arguments should include the following, with exactly one --temporary flag:
 

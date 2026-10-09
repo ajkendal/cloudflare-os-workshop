@@ -22,7 +22,7 @@ const validConfig: DeploymentConfig = {
     errorReporter: { name: "acme-cloudflare-os-errors" },
   },
   access: {
-    admins: ["admin@example.com"],
+    admins: ["admin"],
   }, 
   aiGateway: {
     enabled: true,
@@ -119,11 +119,21 @@ test("rejects destructive or malformed deployment values", () => {
     () => validateConfig(variant((c) => { c.context.sharingDomain = ""; })),
     /sharingDomain must be null or a non-empty string/i);
 
+  // An email address is the mistake to guard: the backend normalizes account names to
+  // /^[a-z][a-z0-9_]*$/, so an email in ADMINS matches no account and denies /admin to everyone.
   assert.throws(
-    () => validateConfig(variant((c) => { c.access.admins = ["Admin@Example.com"]; })), /lowercase email-form/i);
+    () => validateConfig(variant((c) => { c.access.admins = ["attendee@example.com"]; })),
+    /Email addresses are not usernames/i);
 
   assert.throws(
-    () => validateConfig(variant((c) => { c.access.admins = ["bad-address"]; })), /email-form/i);
+    () => validateConfig(variant((c) => { c.access.admins = ["Attendee"]; })), /lowercase/i);
+
+  // Hyphens pass the signup form's own hint but not the backend rule.
+  assert.throws(
+    () => validateConfig(variant((c) => { c.access.admins = ["bad-address"]; })), /underscores/i);
+
+  assert.throws(
+    () => validateConfig(variant((c) => { c.access.admins = ["1attendee"]; })), /starting with a letter/i);
 
   assert.throws(
     () => validateConfig(variant((c) => {
@@ -183,7 +193,7 @@ test("generates password-mode Workshop, Context, and custom Gatekeeper configs",
   const vars = generated.workshop.vars!;
 
   assert.equal(generated.workshop.name, "acme-cloudflare-os-backend");
-  assert.deepEqual(vars.ADMINS, ["admin@example.com"]);
+  assert.deepEqual(vars.ADMINS, ["admin"]);
   assert.equal(vars.CF_ACCESS_ISS, undefined);
   assert.equal(vars.CF_ACCESS_AUD, undefined);
   assert.equal(vars.PUBLIC_BASE_URL, "https://os.example.com");
