@@ -21,8 +21,7 @@
   "image": "mcr.microsoft.com/devcontainers/typescript-node:24-trixie",
 
   "features": {
-    // Needed by `git clone --recurse-submodules` and the `git submodule update --init` that
-    // bootstrap.js checks for. The base image has git, but this keeps it current.
+    // The base image has git, but this keeps the attendee's clone tool current.
     "ghcr.io/devcontainers/features/git:1": {}
   },
 

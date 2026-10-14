@@ -8,11 +8,10 @@ an empty Wrangler credential store, as temporary workshop accounts require.
 
 ## Start
 
-1. Clone this repository into a **fresh temporary directory** (including the
-   `cloudflare-os` submodule):
+1. Clone this complete workshop repository into a **fresh temporary directory**:
 
    ```sh
-   git clone --recurse-submodules https://github.com/cloudflare/cloudflare-os-workshop.git
+   git clone https://github.com/cloudflare/cloudflare-os-workshop.git
    cd cloudflare-os-workshop
    ```
 

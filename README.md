@@ -23,7 +23,7 @@ Use these steps once you have learned the Event Code from the speaker.
 Open your terminal and change to a temporary directory, then run:
 
 ```bash
-git clone --recurse-submodules https://github.com/cloudflare/cloudflare-os-workshop.git
+git clone https://github.com/cloudflare/cloudflare-os-workshop.git
 cd cloudflare-os-workshop
 ```
 
@@ -74,9 +74,10 @@ Wait for all Workers to finish deploying.  The command automatically uses your t
 
 ## Verify your instance
 
-1. Start a chat and ask "Reply with Workshop ready."  Confirm the agent responds.
-2. Ask it to build a simple checklist gadget, then refresh and confirm the gadget still exists.
-3. Enable and text the context, scheduler, or other integrations the speaker asks you to use.
+1. Start a chat with the default **GLM 4.7 Flash** model and ask "Reply with Workshop ready." Confirm the agent responds.
+2. Optionally switch to **Gemma 4 26B** after the speaker has confirmed it is available for the event account.
+3. Ask it to build a simple checklist gadget, then refresh and confirm the gadget still exists.
+4. Enable and test the context, scheduler, or other integrations the speaker asks you to use.
 
 ## Finish the workshop
 

@@ -682,9 +682,9 @@ function deployWorker(dir: string, extraArgs: string[]): void {
   }
 }
 
-function requireSubmodule(): void {
+function requireCloudflareOs(): void {
   if (!existsSync(join(root, "cloudflare-os/package.json"))) {
-    throw new Error("CloudflareOS submodule is not initialized. Run git submodule update --init.");
+    throw new Error("Vendored Cloudflare OS files are missing. Re-clone this workshop repository.");
   }
 }
 
@@ -716,7 +716,7 @@ function reportAiGateway(config: DeploymentConfig): void {
 }
 
 async function main(): Promise<void> {
-  requireSubmodule();
+  requireCloudflareOs();
   const config = await readDeployment(join(root, "deployment.jsonc"));
   const check = process.argv.includes("--check");
   if (!check) {

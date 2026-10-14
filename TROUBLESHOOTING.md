@@ -4,15 +4,16 @@
 
 Attendee: install the tool versions listed in Section 2.1, reopen the terminal, and check node --version and pnpm --version. Do not bypass version checks.
 
-## 2 The Cloudflare OS submodule is missing
+## 2 Vendored Cloudflare OS files are missing
+
+Re-clone the workshop repository into a fresh directory; do not try to initialize a submodule. Then install both workspaces:
 
 ```bash
-git submodule update --init
 pnpm install
 pnpm --dir cloudflare-os install
 ```
 
-Then rerun node bootstrap.js.
+Then rerun `node bootstrap.js`.
 
 ## 3 Bootstrap reports existing OAuth or API-token credentials
 

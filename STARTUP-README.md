@@ -65,7 +65,6 @@ Anything past that needs your own code or settings, which is what this repositor
 Install [Node.js 24.19 or newer](https://nodejs.org/) (the deploy scripts are TypeScript run directly by `node`), [pnpm 11.17](https://pnpm.io/installation), and authenticate [Wrangler](https://developers.cloudflare.com/workers/wrangler/commands/#login):
 
 ```sh
-git submodule update --init
 pnpm install
 pnpm --dir cloudflare-os install
 pnpm exec wrangler login

@@ -14,9 +14,44 @@ git rev-parse HEAD
 git submodule status
 ```
 
-Record the starter commit and pinned Cloudflare OS submodule commit in the workshop README. Preserve the starter’s license and notices. Keep the pinned submodule; do not update it to a different upstream release while preparing the workshop.
+Record the starter commit and pinned Cloudflare OS submodule commit in the workshop README. Preserve the starter’s license and notices. Keep the pinned submodule through the starter-specific setup work; vendor it before making workshop-specific Cloudflare OS changes.
 
-## 1.2 Install and pin the toolchain
+## 1.2 Vendor Cloudflare OS for the workshop
+
+The workshop's model catalog differs from the upstream default: temporary Workers Free accounts cannot use the upstream Kimi K2.7 Code or GLM 5.2 defaults. Vendor the pinned submodule before changing that catalog, so every attendee clones one complete repository and the workshop owns its tested Cloudflare OS revision.
+
+```bash
+# Preserve the initialized submodule's working tree and its ignored node_modules/ directory.
+git submodule deinit -f cloudflare-os
+git rm --cached cloudflare-os
+rm cloudflare-os/.git
+rm -rf .git/modules/cloudflare-os
+git rm .gitmodules
+git add cloudflare-os
+```
+
+Keep `cloudflare-os/` at the same path: the workshop deployment scripts and its two linked workspace packages already use that path. Its own `pnpm-workspace.yaml`, lockfile, and `.gitignore` remain in effect, so it stays a separately installed workspace; vendoring only removes Git submodule setup from an attendee clone. Record the upstream commit used to create the vendored directory, retain its `LICENSE` and notices, and keep workshop changes small enough to reapply if the pinned upstream revision must later change.
+
+In `cloudflare-os/packages/workshop-shared/src/api.ts`, replace the Cloudflare entries in `SUGGESTED_MODELS` with these Workers Free-compatible models, keeping GLM first so it is the default chat model:
+
+```ts
+"cloudflare": {
+  "@cf/zai-org/glm-4.7-flash": {
+    name: "GLM 4.7 Flash (Workers AI)", contextWindow: 131072,
+    outputLimit: WORKERS_AI_OUTPUT_LIMIT,
+  },
+  "@cf/google/gemma-4-26b-a4b-it": {
+    name: "Gemma 4 26B (Workers AI)", contextWindow: 256000,
+    outputLimit: WORKERS_AI_OUTPUT_LIMIT,
+  },
+},
+```
+
+Remove the Kimi K2.7 Code and GLM 5.2 entries. They require Workers Paid or prepaid AI Gateway credits and otherwise return 403 on Workers Free accounts. Update the compaction test for GLM's `131072 - 32768 = 98304` input-token budget. Validate Gemma on a temporary event account before publishing; GLM 4.7 Flash has already been validated.
+
+After vendoring, update attendee clone commands to omit `--recurse-submodules` and change bootstrap's missing-directory guidance from "submodule is not initialized" to a checkout-integrity error.
+
+## 1.3 Install and pin the toolchain
 
 ```bash
 node --version
@@ -27,11 +62,11 @@ pnpm exec wrangler --version
 ```
 
 * Use Node.js 24.19 or newer and the starter’s pnpm 11.17 toolchain.
-* Select and pin one tested Wrangler version, at least 4.144 for event-code support. Align the Wrangler used by bootstrap with the one used for all six deployment invocations, including submodule package resolution.
+* Select and pin one tested Wrangler version, at least 4.144 for event-code support. Align the Wrangler used by bootstrap with the one used for all six deployment invocations, including the vendored Cloudflare OS workspace.
 * Update the applicable workspace/catalog entries and lockfiles rather than relying on npx wrangler@latest at the conference.
 * Verify the version from every package context where the deployment script resolves Wrangler.
 
-## 1.3 Replace the deployment defaults with workshop defaults
+## 1.4 Replace the deployment defaults with workshop defaults
 
 Create a tracked deployment.template.jsonc from the starter’s deployment.jsonc. Preserve the other annotated settings and replace the relevant fields with this target shape:
 
@@ -69,7 +104,7 @@ git rm --cached deployment.jsonc
 # Commit deployment.template.jsonc as the non-secret workshop template.
 ```
 
-## 1.4 Enable built-in username/password sign-in
+## 1.5 Enable built-in username/password sign-in
 
 Make these changes in the workshop-owned scripts, following the starter’s [sign-in-method instructions](docs/customization.md#sign-in-methods). This target configuration is not accepted by the unchanged starter.
 
@@ -96,7 +131,7 @@ workshop.vars = {
 
 Derive the attendee’s Cloudflare OS username from the local part of the email collected by bootstrap (for example, `fizzyinthehall@gmail.com` becomes `fizzyinthehall`), then write the derived username to `ADMINS`. Cloudflare OS usernames start with a letter and contain only lowercase letters, digits, and underscores; they are not email addresses. First signup does not automatically grant administrator access. Password sign-in is not email-verified Cloudflare Access identity. Do not advertise this setup as equivalent to an Access-protected production deployment.
 
-## 1.5 Add the bootstrap Worker
+## 1.6 Add the bootstrap Worker
 
 Create `bootstrap/worker.mjs`:
 
@@ -120,11 +155,11 @@ Create `bootstrap/wrangler.jsonc`. Use a compatibility date verified with the pi
 }
 ```
 
-## 1.6 Implement node bootstrap.js
+## 1.7 Implement node bootstrap.js
 
 Add `bootstrap.js` at the repository root. The starter uses JavaScript modules, so use Node ESM. Implement the following sequence; this is the script’s required behavior, not an existing upstream command.
 
-1. Check Node, pnpm, initialized submodule, installed dependencies, and the pinned Wrangler version. Stop with the exact fix if any prerequisite is missing.
+1. Check Node, pnpm, the vendored Cloudflare OS files, installed dependencies, and the pinned Wrangler version. Stop with the exact fix if any prerequisite is missing.
 2. Prompt for the session event code and the attendee’s email. Trim the code, validate it using the accepted event format, and validate/lowercase the email. Do not prompt for an application password.
 3. Check for conflicting environment credentials, stored OAuth credentials, and any temporary-account cache. Never automatically log the attendee out or overwrite an unrelated temporary account. Explain the conflict and stop. Allow a tested resume path for the same valid workshop account without resending its event code.
 4. Resolve the pinned local Wrangler entry point and spawn the bootstrap deployment with `pnpm deploy --config bootstrap/wrangler.jsonc --temporary --event-code <entered-code>`. Pass arguments as an array, not an interpolated shell command; support Windows command execution.
@@ -152,7 +187,7 @@ Next: pnpm deploy
 Save the private claim link shown above. Do not claim until after the workshop.
 ```
 
-## 1.7 Make pnpm deploy use the cached temporary account
+## 1.8 Make pnpm deploy use the cached temporary account
 
 1. Keep pnpm deploy as the attendee-facing command. Integrate --temporary in the workshop deployment wrapper rather than requiring attendees to supply it.
 2. Before building or deploying, read and validate the temporary cache through the shared helper. Require an unexpired account and claim window, and require cached account.id to equal deployment.jsonc accountId. If not, stop and direct the attendee to bootstrap/recovery. Do not silently provision a replacement.
@@ -170,13 +205,13 @@ For a workshop-only wrapper, the per-Worker Wrangler arguments should include th
 
 Make failure handling explicit. A successful bootstrap followed by an expired cache must fail before deployment; it must not quietly start a new account. A partial Cloudflare OS deployment can be retried with pnpm deploy while the same account remains valid.
 
-## 1.8 Confirm the event account’s service entitlements
+## 1.9 Confirm the event account’s service entitlements
 
 Before rehearsal, obtain a test event code from the event-account owner. Confirm the actual temporary account supports Workers, Durable Objects, KV, R2, Browser Rendering, Dynamic Worker Loaders, Workers AI, and AI Gateway for the workshop’s required operations. R2/Containers entitlements alone do not establish that Cloudflare OS can run all its features.
 
 Use the event account’s actual expiry. Do not copy the standard temporary-account 60-minute limit into the workshop guide. Confirm what changes when the attendee claims the account and how required services must be enabled afterward.
 
-## 1.9 Test the exact attendee experience
+## 1.10 Test the exact attendee experience
 
 1. From a fresh checkout, follow Section 2 without manual configuration edits. Test on macOS, Windows, and the Linux environments you will support.
 2. Verify the Terms/Privacy prompt is visible and declining it stops setup. Verify errors never expose a temporary API token.
@@ -188,7 +223,7 @@ Use the event account’s actual expiry. Do not copy the standard temporary-acco
 
 Have at least three people follow only the written guide. Fix every step that requires verbal help.
 
-## 1.10 Publish the tested workshop revision
+## 1.11 Publish the tested workshop revision
 
 Add attendee commands to the workshop README. Document the supported tool versions, bootstrap output, private claim-link handling, and post-session claiming. Replace YOUR-ORG in Section 2 with the actual repository owner. Merge the tested workshop branch and publish a workshop-v1 tag.
 
