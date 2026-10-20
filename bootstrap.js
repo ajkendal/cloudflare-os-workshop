@@ -5,7 +5,6 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { applyEdits, modify, parse, printParseErrorCode } from "jsonc-parser";
-import { pnpmCommand } from "./cloudflare-os/scripts/pnpm-command.ts";
 import { resolveBinEntry } from "./cloudflare-os/scripts/bin-entry.ts";
 import {
   assertNoConflictingCredentials,
@@ -49,15 +48,17 @@ function run(command, args, label) {
   if (result.status !== 0) throw new Error(`${label} failed. Its output is above.`);
 }
 
-function output(command, args) {
-  const result = spawnSync(command, args, { cwd: root, encoding: "utf8", env: process.env });
+function output(command, args, options = {}) {
+  const result = spawnSync(command, args, { cwd: root, encoding: "utf8", env: process.env, ...options });
   if (result.error || result.status !== 0) return undefined;
   return result.stdout.trim();
 }
 
 async function prerequisites() {
   if (!versionAtLeast(process.version, minimumNode)) throw new Error("Node.js 24.19 or newer is required. Install it, then rerun `node bootstrap.js`.");
-  const pnpmVersion = output(process.platform === "win32" ? "pnpm.cmd" : "pnpm", ["--version"]);
+  // Windows exposes pnpm as a .cmd shim, which Node cannot spawn directly. This is a fixed
+  // command with no interpolated input, so invoking it through the shell is safe.
+  const pnpmVersion = output("pnpm --version", [], { shell: true });
   if (!pnpmVersion || !versionAtLeast(pnpmVersion, [11, 17, 0])) throw new Error("pnpm 11.17 or newer is required. Enable it with `corepack prepare pnpm@11.17.0 --activate`, then rerun bootstrap.");
   if (!existsSync(join(root, "cloudflare-os/package.json"))) throw new Error("Vendored Cloudflare OS files are missing. Re-clone this workshop repository, then rerun bootstrap.");
   for (const path of ["node_modules/wrangler/package.json", "cloudflare-os/node_modules/wrangler/package.json"]) {
