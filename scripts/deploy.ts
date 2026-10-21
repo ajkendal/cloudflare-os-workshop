@@ -661,17 +661,22 @@ function run(args: string[], cwd = root, env: NodeJS.ProcessEnv = process.env): 
 }
 
 /**
+ * Arguments for one Worker's `wrangler deploy`. A real deploy carries exactly one `--temporary` and
+ * never `--event-code`: bootstrap already provisioned the account, and the cache check in `main`
+ * stops an expired or mismatched one first. `pnpm check` must never provision, so it gets neither.
+ */
+export function wranglerDeployArgs(check: boolean, extraArgs: string[] = []): string[] {
+  return ["deploy", "--config", generatedName, ...(check ? [] : ["--temporary"]), ...extraArgs];
+}
+
+/**
  * `wrangler deploy` for one package, spawned as `node <entry>` when the entry point behind the
  * `.bin` shim can be found. That saves the ~0.33s `pnpm exec` costs per call and sidesteps the
  * Windows `.cmd` shim entirely; when it cannot be resolved, the pnpm path is still there.
  */
 function deployWorker(dir: string, extraArgs: string[]): void {
   const cwd = join(root, dir);
-  const args = [
-    "deploy", "--config", generatedName,
-    ...(process.argv.includes("--check") ? [] : ["--temporary"]),
-    ...extraArgs,
-  ];
+  const args = wranglerDeployArgs(process.argv.includes("--check"), extraArgs);
   // Deliberately resolve from the workshop root: all six Workers, including submodule packages,
   // must use the workshop's pinned temporary-account-capable Wrangler release.
   const entry = resolveBinEntry(root, "wrangler");

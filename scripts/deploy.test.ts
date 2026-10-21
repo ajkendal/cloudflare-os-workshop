@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { parse, type ParseError } from "jsonc-parser";
-import { aiGatewayPlan, buildCommands, generateConfigs, validateConfig } from "./deploy.ts";
+import {
+  aiGatewayPlan,
+  buildCommands,
+  generateConfigs,
+  validateConfig,
+  wranglerDeployArgs,
+} from "./deploy.ts";
 import type {
   BaseConfigs,
   DeploymentConfig,
@@ -617,4 +623,17 @@ test("skips the Error Reporter build when error reporting is disabled", () => {
   });
   const commands = buildCommands(config).map(({ args }) => args.join(" "));
   assert.equal(commands.some((command) => command.includes("error-reporter")), false);
+});
+
+test("deploys into the cached temporary account with exactly one --temporary", () => {
+  const args = wranglerDeployArgs(false);
+  assert.deepEqual(args, ["deploy", "--config", "wrangler.prod.jsonc", "--temporary"]);
+  // Bootstrap already provisioned the account; resending the event code could start another.
+  assert.ok(!args.some((arg) => arg.startsWith("--event-code")));
+});
+
+test("keeps pnpm check from provisioning a temporary account", () => {
+  assert.deepEqual(
+    wranglerDeployArgs(true, ["--dry-run"]),
+    ["deploy", "--config", "wrangler.prod.jsonc", "--dry-run"]);
 });

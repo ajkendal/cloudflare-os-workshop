@@ -66,7 +66,7 @@ Wait for all Workers to finish deploying.  The command automatically uses your t
 
 ## Create your Cloudflare OS login
 
-1. Choose the signup option on your deployed site.
+1. Your site opens on a **Sign in** form, but you have no account yet. Click **Create one** below the Sign in button (or open `/signup`). Signing in first fails with "Invalid username or password".
 2. Use the exact username shown by bootstrap and choose a unique password. It is not your email address. This is a Cloudflare OS login, not a Cloudflare account claim.
 3. Open `/admin`.  Confirm you can access it.
 4. Close new signups if you do not need other users. Register your administrator username before sharing the site URL.

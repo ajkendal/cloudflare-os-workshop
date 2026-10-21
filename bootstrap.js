@@ -10,6 +10,7 @@ import {
   assertNoConflictingCredentials,
   conflictingCredentialSources,
   readTemporaryAccount,
+  temporaryAccountPath,
 } from "./scripts/temporary-account.ts";
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -18,6 +19,10 @@ const pinnedWrangler = "4.144.0";
 const emailPattern = /^[^@\s]+@[^@\s]+$/;
 const usernamePattern = /^[a-z][a-z0-9_]*$/;
 const accountIdPattern = /^[a-f\d]{32}$/i;
+// The format of the codes this event issues (e.g. ABCD-1234-EFGH). Wrangler sends the code as-is
+// and only the API rejects a malformed one, after the Terms prompt; checking first saves a retry.
+const eventCodePattern = /^[A-Z\d]{4}-[A-Z\d]{4}-[A-Z\d]{4}$/;
+const claimWarning = "Save the private claim link shown below. Do not claim until after the workshop: claiming removes the event services the workshop needs.";
 
 // A Cloudflare OS username is not an email address. The Workshop backend normalizes every account
 // name to `usernamePattern` (`normalizeUsername` in
@@ -119,7 +124,7 @@ async function main() {
     const siteUrl = await writeConfiguration(cached, username);
     console.log("\nWorkshop configuration ready.");
     console.log(`Account ID: ${cached.accountId}\nSite URL: ${siteUrl}\nAdmin username: ${username}\nExpires: ${cached.accountExpiresAt}`);
-    console.log("\nNext: pnpm deploy\nSave the private claim link shown above. Do not claim until after the workshop.");
+    console.log(`\nNext: pnpm deploy\n${claimWarning}`);
     console.log(`\nPrivate claim link — do not share or claim until after the session:\n${cached.claimUrl}`);
     return;
   }
@@ -127,8 +132,13 @@ async function main() {
   if (conflicts.length || cached) {
     throw new Error(cached ? "A temporary account is already cached. Do not overwrite it. If it is your workshop account, restore its matching deployment.jsonc and rerun bootstrap; otherwise use a separate OS user/profile." : `Temporary accounts require no other Wrangler credentials. Found: ${conflicts.join(", ")}. Do not delete them automatically; use a separate OS user/profile or run \`wrangler logout\` only after confirming they are safe to remove.`);
   }
-  const eventCode = await prompt("Session event code: ");
-  if (!eventCode) throw new Error("Event code cannot be empty. Rerun bootstrap and enter the code from the speaker.");
+  // A cache file that no longer validates is an expired (or damaged) account. Starting over makes a
+  // new account and replaces deployment.jsonc, so it has to be asked for rather than slipped into.
+  if (existsSync(temporaryAccountPath()) && !process.argv.includes("--fresh")) {
+    throw new Error("Your temporary workshop account has expired or its cache is unreadable. Its deployment cannot be updated any more. To create a new account and regenerate deployment.jsonc, rerun `node bootstrap.js --fresh` with a current event code.");
+  }
+  const eventCode = (await prompt("Session event code: ")).replace(/\s+/g, "").toUpperCase();
+  if (!eventCodePattern.test(eventCode)) throw new Error("That event code is not in the expected format (like ABCD-1234-EFGH). Check the code from the speaker, then rerun bootstrap.");
   const email = (await prompt("Email address (identifies you to the workshop organizer): ")).toLowerCase();
   if (!emailPattern.test(email)) throw new Error("Enter a valid email address. Rerun bootstrap to try again.");
   const username = usernameFromEmail(email);
@@ -141,7 +151,7 @@ async function main() {
   const siteUrl = await writeConfiguration(account, username);
   console.log("\nWorkshop configuration ready.");
   console.log(`Account ID: ${account.accountId}\nSite URL: ${siteUrl}\nAdmin username: ${username}\nExpires: ${account.accountExpiresAt}`);
-  console.log("\nNext: pnpm deploy\nSave the private claim link shown above. Do not claim until after the workshop.");
+  console.log(`\nNext: pnpm deploy\n${claimWarning}`);
   console.log(`\nPrivate claim link — do not share or claim until after the session:\n${account.claimUrl}`);
 }
 
