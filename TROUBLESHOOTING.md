@@ -4,6 +4,8 @@
 
 Attendee: install the tool versions listed in Section 2.1, reopen the terminal, and check node --version and pnpm --version. Do not bypass version checks.
 
+If pnpm works but a command fails with `exec: node: not found` (for example `pnpm exec wrangler --version`), Node is installed but this terminal has not loaded it. This is common when Node comes from a version manager such as Volta or nvm. Open a new terminal (restart VS Code if you use its built-in terminal) and check `node --version` again.
+
 ## 2 Vendored Cloudflare OS files are missing
 
 Re-clone the workshop repository into a fresh directory; do not try to initialize a submodule. Then install both workspaces:
@@ -29,7 +31,7 @@ Then rerun `node bootstrap.js`.
 
 ## 5 The event code is rejected
 
-Re-enter the speaker’s code exactly. If the error says the event has not started, has ended, is disabled, or has no accounts remaining, ask the speaker to check event provisioning. Do not omit the code just to get a standard temporary account.
+Re-enter the speaker’s code exactly. Codes look like `ABCD-1234-EFGH`; bootstrap ignores spaces and letter case, and stops before contacting Cloudflare if the code is not in that shape. If the error says the event has not started, has ended, is disabled, or has no accounts remaining, ask the speaker to check event provisioning. Do not omit the code just to get a standard temporary account.
 
 ## 6 Terms acceptance was declined or the bootstrap deployment failed
 
@@ -49,7 +51,7 @@ Read the terminal error. If you declined the terms, provisioning cannot continue
 
 ## 9 Account mismatch or temporary account expired
 
-Stop deploying. Do not manually change just the account ID. Ask the speaker to use the fresh-start recovery flow if the event permits another account. Rerun bootstrap so both accountId and publicBaseUrl are regenerated. Resources from the old account are not moved automatically.
+Stop deploying. Do not manually change just the account ID. Ask the speaker to use the fresh-start recovery flow if the event permits another account: `node bootstrap.js --fresh` with a current event code, which regenerates both accountId and publicBaseUrl. Plain `node bootstrap.js` refuses to start over on an expired account so it cannot happen by accident. Resources from the old account are not moved automatically.
 
 ## 10 Deployment fails partway through
 
@@ -60,6 +62,8 @@ Keep the temporary cache intact. Resolve the reported error, then rerun pnpm dep
 Sign in with the exact username shown by bootstrap, not the email address supplied to bootstrap. A valid username begins with a lowercase letter and contains only lowercase letters, digits, and underscores. First signup does not grant admin rights automatically. The runner should confirm that generated ADMINS matches the normalized signed-in username. Do not turn off authorization as a workaround.
 
 ## 12 Password signup fails or the username is already taken
+
+"Invalid username or password" on your first visit means you used the **Sign in** form before creating an account. Click **Create one** below the Sign in button (or open `/signup`) and register with the username bootstrap displayed.
 
 If you entered an email address, use the username bootstrap displayed instead; for `fizzyinthehall@gmail.com`, that is `fizzyinthehall`. If you already created the user, use sign-in. If you have not, ask the runner to inspect signup availability and the account state privately. Do not choose a different username without updating the administrator configuration.
 

@@ -93,4 +93,4 @@ If you run into problems, review the [Troubleshooting Guide](./TROUBLESHOOTING.m
 
 This guide supports Node.js 24.19+ and pnpm 11.17+ with Wrangler 4.144.0, pinned in the repository. `bootstrap.js` checks these prerequisites and prints the account ID, site URL, administrator username, and the event account's actual expiry. The claim link is a private bearer credential: keep it only in your terminal/private notes, never share it, and wait until the session ends before claiming.
 
-The event organizer must separately rehearse the current event code and temporary-account entitlements before publishing a `workshop-v1` release tag. This checkout has not been tagged or published by this preparation workflow.
+Release status: `workshop-v1-rc1` (release candidate). It has been rehearsed end to end on macOS against a real event account: bootstrap, all six Worker deployments, password sign-up, `/admin`, chat and gadgets, plus bootstrap/deploy failure and recovery paths. Before `workshop-v1` is tagged it still needs a fresh-checkout rehearsal (including declining the Terms prompt), Windows and Linux runs, and three people completing this guide unaided.
